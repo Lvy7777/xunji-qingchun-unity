@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/Prologue.unity
+    guid: 064273871b2c6394a974dd7e46d07407
+  - enabled: 1
+    path: Assets/Scenes/RedMemory.unity
+    guid: 1a2e96362f1fa0b468f6497c1314ee7c
+  - enabled: 1
+    path: Assets/Scenes/HometownMemory.unity
+    guid: acbe70b36e935e04db4fcbae151ebcdc
+  - enabled: 1
+    path: Assets/Scenes/YouthMemory.unity
+    guid: 37bee81786915c74d937171e8cacb3f1
+  - enabled: 1
+    path: Assets/Scenes/SampleScene.unity
+    guid: 00000000000000000000000000000000
+  - enabled: 1
+    path: Assets/Scenes/VillageMemory.unity
+    guid: b192088d85d0f1044ac6002a0e4723be
+  - enabled: 1
+    path: Assets/Scenes/Ending.unity
+    guid: 251a3874995731e4bb5c188594b9d438
+  m_configObjects: {}
