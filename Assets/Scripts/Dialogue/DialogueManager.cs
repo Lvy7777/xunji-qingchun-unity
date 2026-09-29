@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public sealed class DialogueManager : MonoBehaviour
 {
     [SerializeField] private float characterDelay = 0.035f;
-    [SerializeField] private float characterTransitionDuration = 0.12f;
+    [SerializeField, Range(0.15f, 0.3f)] private float characterTransitionDuration = 0.22f;
 
     private TMP_Text nameText;
     private TMP_Text dialogueText;
@@ -146,6 +146,8 @@ private void Awake()
         {
             advanceRequested = true;
         }
+
+        PrologueAudioBindings.PlayDialogueAdvance();
     }
 
     public void SetInputEnabled(bool enabled)
@@ -180,9 +182,8 @@ private void Awake()
 
 private IEnumerator AnimateSpeakerVisuals(DialogueSpeaker speaker)
     {
-        bool hideAllCharacters = speaker == DialogueSpeaker.System;
-        bool showXiaoHe = !hideAllCharacters;
-        bool showVolunteer = !hideAllCharacters;
+        bool showXiaoHe = speaker == DialogueSpeaker.XiaoHe;
+        bool showVolunteer = speaker == DialogueSpeaker.Volunteer;
 
         PrepareCharacterForTransition(xiaoHeGroup, showXiaoHe);
         PrepareCharacterForTransition(volunteerGroup, showVolunteer);

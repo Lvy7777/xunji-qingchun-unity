@@ -58,9 +58,11 @@ public sealed class GlobalPresentationBootstrap : MonoBehaviour
         Button[] buttons = Object.FindObjectsOfType<Button>(true);
         for (int i = 0; i < buttons.Length; i++)
         {
-            if (buttons[i].gameObject.scene == scene && buttons[i].GetComponent<UIButtonFeedback>() == null)
+            if (scene.name == "Prologue" &&
+                buttons[i].gameObject.scene == scene &&
+                buttons[i].GetComponent<UIButtonAnimator>() == null)
             {
-                buttons[i].gameObject.AddComponent<UIButtonFeedback>();
+                buttons[i].gameObject.AddComponent<UIButtonAnimator>();
             }
         }
 

@@ -170,9 +170,11 @@ public sealed class PrologueStoryController : MonoBehaviour
 
         dialoguePanel = FindObject(dialogueLayer, "DialoguePanel");
         choicePanel = FindObject(dialogueLayer, "ChoicePanel");
-        studyBookObject = FindObject(dialogueLayer, "StudyBookObject");
+        studyBookObject = FindObject(dialogueLayer, "HandbookCoverRoot")
+            ?? FindObject(dialogueLayer, "StudyBookObject");
         interactionHint = FindObject(dialogueLayer, "InteractionHint");
-        studyBookPanel = FindObject(dialogueLayer, "StudyBookPanel");
+        studyBookPanel = FindObject(dialogueLayer, "HandbookContentPanel")
+            ?? FindObject(dialogueLayer, "StudyBookPanel");
         systemMessagePanel = FindObject(dialogueLayer, "SystemMessagePanel");
         taskPopup = FindObject(canvas, "TaskLayer/TaskPopup");
 
@@ -192,8 +194,10 @@ public sealed class PrologueStoryController : MonoBehaviour
         screenAdvanceButton = FindButton(dialogueLayer, "ScreenAdvanceButton");
         firstChoiceButton = FindButton(dialogueLayer, "ChoicePanel/ChoiceButtonOne");
         secondChoiceButton = FindButton(dialogueLayer, "ChoicePanel/ChoiceButtonTwo");
-        studyBookButton = FindButton(dialogueLayer, "StudyBookObject");
-        closeBookButton = FindButton(dialogueLayer, "StudyBookPanel/CloseButton");
+        studyBookButton = studyBookObject != null ? studyBookObject.GetComponent<Button>() : null;
+        closeBookButton = studyBookPanel != null
+            ? studyBookPanel.transform.Find("CloseButton")?.GetComponent<Button>()
+            : null;
 
         systemMessageText = FindText(systemMessagePanel, "MessageText");
         interactionHintText = interactionHint != null ? interactionHint.GetComponent<TMP_Text>() : null;
@@ -203,10 +207,10 @@ public sealed class PrologueStoryController : MonoBehaviour
 
         memoryButtons = new[]
         {
-            FindButton(dialogueLayer, "StudyBookPanel/RedMemoryStatus"),
-            FindButton(dialogueLayer, "StudyBookPanel/HometownMemoryStatus"),
-            FindButton(dialogueLayer, "StudyBookPanel/YouthMemoryStatus"),
-            FindButton(dialogueLayer, "StudyBookPanel/VillageMemoryStatus")
+            FindButton(studyBookPanel != null ? studyBookPanel.transform : null, "RedMemoryStatus"),
+            FindButton(studyBookPanel != null ? studyBookPanel.transform : null, "HometownMemoryStatus"),
+            FindButton(studyBookPanel != null ? studyBookPanel.transform : null, "YouthMemoryStatus"),
+            FindButton(studyBookPanel != null ? studyBookPanel.transform : null, "VillageMemoryStatus")
         };
 
         string[] blockNames =
@@ -278,24 +282,11 @@ public sealed class PrologueStoryController : MonoBehaviour
         Button[] buttons = characterLayer.root.GetComponentsInChildren<Button>(true);
         for (int i = 0; i < buttons.Length; i++)
         {
-            if (buttons[i] == studyBookButton)
+            if (buttons[i].GetComponent<UIButtonAnimator>() == null)
             {
-                continue;
-            }
-
-            if (buttons[i].GetComponent<UIButtonFeedback>() == null)
-            {
-                buttons[i].gameObject.AddComponent<UIButtonFeedback>();
+                buttons[i].gameObject.AddComponent<UIButtonAnimator>();
             }
         }
-
-        StudyBookAttentionFeedback bookFeedback =
-            studyBookButton.GetComponent<StudyBookAttentionFeedback>();
-        if (bookFeedback == null)
-        {
-            bookFeedback = studyBookButton.gameObject.AddComponent<StudyBookAttentionFeedback>();
-        }
-        bookFeedback.Configure(interactionHintText);
     }
 
     private void ConfigureStudyBookContent()
@@ -340,9 +331,10 @@ public sealed class PrologueStoryController : MonoBehaviour
         yield return Fade(fadePanel, 1f, 0f, 0.65f);
         fadePanel.gameObject.SetActive(false);
 
-        yield return Fade(xiaoHeGroup, 0f, 0.5f, 0.32f);
-        yield return new WaitForSecondsRealtime(0.1f);
-        yield return Fade(volunteerGroup, 0f, 0.5f, 0.32f);
+        xiaoHeGroup.alpha = 0f;
+        volunteerGroup.alpha = 0f;
+        xiaoHeGroup.gameObject.SetActive(false);
+        volunteerGroup.gameObject.SetActive(false);
 
         dialoguePanel.SetActive(true);
         yield return Fade(dialogueGroup, 0f, 1f, 0.32f);
@@ -424,6 +416,12 @@ public sealed class PrologueStoryController : MonoBehaviour
         while (!studyBookClicked)
         {
             yield return null;
+        }
+
+        HandbookCoverController coverController = studyBookObject.GetComponent<HandbookCoverController>();
+        if (coverController != null)
+        {
+            yield return coverController.PlayOpenTransition();
         }
 
         studyBookObject.SetActive(false);

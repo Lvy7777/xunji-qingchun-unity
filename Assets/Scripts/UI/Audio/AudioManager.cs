@@ -59,6 +59,14 @@ public sealed class AudioManager : MonoBehaviour
         }
     }
 
+    public void PlaySfx(AudioClip clip)
+    {
+        if (clip != null)
+        {
+            sfxSource.PlayOneShot(clip, sfxVolume);
+        }
+    }
+
     public void PlayBgm(AudioClip clip, float fadeSeconds = 0.8f)
     {
         if (clip == null || bgmSource.clip == clip)

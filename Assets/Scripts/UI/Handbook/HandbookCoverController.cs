@@ -7,131 +7,151 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class HandbookCoverController : MonoBehaviour
 {
-    private Button button;
+    [Header("Replaceable P-001 art slots")]
+    [SerializeField] private Sprite coverSprite;
+    [SerializeField] private Image coverImage;
+    [SerializeField] private Image glowImage;
+    [SerializeField] private TMP_Text hintText;
+    [SerializeField] private GameObject contentPanel;
+
     private RectTransform rect;
-    private Image cover;
+    private CanvasGroup group;
+    private float baseGlowAlpha;
 
     public static void ApplyToLoadedScene(Scene scene)
     {
+        if (scene.name != "Prologue") return;
+
         Canvas[] canvases = Object.FindObjectsOfType<Canvas>(true);
         for (int i = 0; i < canvases.Length; i++)
         {
-            if (canvases[i].gameObject.scene != scene)
+            if (canvases[i].gameObject.scene != scene) continue;
+
+            Transform dialogueLayer = canvases[i].transform.Find("DialogueLayer");
+            if (dialogueLayer == null) continue;
+
+            Transform root = dialogueLayer.Find("HandbookCoverRoot")
+                ?? dialogueLayer.Find("StudyBookObject");
+            if (root != null && root.GetComponent<HandbookCoverController>() == null)
             {
-                continue;
+                root.gameObject.AddComponent<HandbookCoverController>();
             }
 
-            Transform book = canvases[i].transform.Find("DialogueLayer/StudyBookObject");
-            if (book != null && book.GetComponent<HandbookCoverController>() == null)
-            {
-                book.gameObject.AddComponent<HandbookCoverController>();
-            }
-
-            Transform panel = canvases[i].transform.Find("DialogueLayer/StudyBookPanel");
-            if (panel != null)
-            {
-                StyleOpenPanel(panel);
-            }
+            Transform panel = dialogueLayer.Find("HandbookContentPanel")
+                ?? dialogueLayer.Find("StudyBookPanel");
+            if (panel != null) StyleOpenPanel(panel);
         }
     }
 
     private void Awake()
     {
-        button = GetComponent<Button>();
         rect = transform as RectTransform;
-        cover = GetComponent<Image>();
-        ApplyCover();
+        group = GetComponent<CanvasGroup>();
+        if (group == null) group = gameObject.AddComponent<CanvasGroup>();
+        BindChildren();
+        ApplyVisuals();
     }
 
-    public IEnumerator PlayOpenFeedback()
+    private void Update()
     {
-        if (rect == null)
-        {
-            yield break;
-        }
+        if (glowImage == null) return;
+        Color color = glowImage.color;
+        color.a = baseGlowAlpha + (Mathf.Sin(Time.unscaledTime * 2.4f) + 1f) * 0.08f;
+        glowImage.color = color;
+    }
 
-        Vector3 start = rect.localScale;
+    public IEnumerator PlayOpenTransition()
+    {
+        if (rect == null) yield break;
+
+        PrologueAudioBindings.PlayBookOpen();
+        Vector3 baseScale = rect.localScale;
+        yield return Scale(baseScale, baseScale * 0.96f, 0.08f);
+        yield return Scale(baseScale * 0.96f, baseScale * 1.1f, 0.15f);
+
         float elapsed = 0f;
-        while (elapsed < 0.12f)
+        const float unfoldDuration = 0.2f;
+        Vector3 from = baseScale * 1.1f;
+        Vector3 to = new Vector3(baseScale.x * 1.34f, baseScale.y * 1.05f, baseScale.z);
+        while (elapsed < unfoldDuration)
         {
             elapsed += Time.unscaledDeltaTime;
-            rect.localScale = Vector3.Lerp(start, start * 1.08f, elapsed / 0.12f);
+            float amount = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / unfoldDuration));
+            rect.localScale = Vector3.LerpUnclamped(from, to, amount);
+            group.alpha = Mathf.Lerp(1f, 0.15f, amount);
             yield return null;
         }
 
-        SFXController.Play(UISound.PageTurn);
+        rect.localScale = baseScale;
+        group.alpha = 1f;
     }
 
-    private void ApplyCover()
+    private IEnumerator Scale(Vector3 from, Vector3 to, float duration)
     {
-        if (rect == null || cover == null)
+        float elapsed = 0f;
+        while (elapsed < duration)
         {
-            return;
+            elapsed += Time.unscaledDeltaTime;
+            float amount = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            rect.localScale = Vector3.LerpUnclamped(from, to, amount);
+            yield return null;
+        }
+        rect.localScale = to;
+    }
+
+    private void BindChildren()
+    {
+        Transform cover = transform.Find("HandbookCoverImage");
+        Transform glow = transform.Find("HandbookGlow");
+        Transform hint = transform.Find("HandbookHintText");
+        if (coverImage == null && cover != null) coverImage = cover.GetComponent<Image>();
+        if (glowImage == null && glow != null) glowImage = glow.GetComponent<Image>();
+        if (hintText == null && hint != null) hintText = hint.GetComponent<TMP_Text>();
+
+        if (contentPanel == null && transform.parent != null)
+        {
+            Transform panel = transform.parent.Find("HandbookContentPanel")
+                ?? transform.parent.Find("StudyBookPanel");
+            if (panel != null) contentPanel = panel.gameObject;
+        }
+    }
+
+    private void ApplyVisuals()
+    {
+        if (rect != null) rect.sizeDelta = new Vector2(410f, 500f);
+
+        if (coverImage != null)
+        {
+            coverImage.sprite = coverSprite;
+            coverImage.preserveAspect = coverSprite != null;
+            coverImage.color = coverSprite != null
+                ? Color.white
+                : new Color(0.94f, 0.75f, 0.42f, 1f);
+            coverImage.raycastTarget = false;
         }
 
-        rect.sizeDelta = new Vector2(410f, 500f);
-        cover.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
-        cover.type = Image.Type.Sliced;
-        cover.color = new Color(0.94f, 0.75f, 0.42f, 1f);
+        if (glowImage != null)
+        {
+            baseGlowAlpha = 0.18f;
+            glowImage.raycastTarget = false;
+        }
 
-        Outline outline = GetComponent<Outline>();
-        if (outline == null) outline = gameObject.AddComponent<Outline>();
-        outline.effectColor = new Color(0.43f, 0.22f, 0.08f, 0.9f);
-        outline.effectDistance = new Vector2(4f, -4f);
-
-        Shadow shadow = GetComponent<Shadow>();
-        if (shadow == null) shadow = gameObject.AddComponent<Shadow>();
-        shadow.effectColor = new Color(0.12f, 0.06f, 0.02f, 0.34f);
-        shadow.effectDistance = new Vector2(10f, -10f);
-
-        CreateDecoration("HandbookSpine", new Vector2(-174f, 0f), new Vector2(28f, 460f), new Color(0.49f, 0.22f, 0.08f, 0.92f));
-        CreateDecoration("HandbookRibbon", new Vector2(138f, 184f), new Vector2(58f, 100f), new Color(0.78f, 0.18f, 0.16f, 0.95f));
-        CreateLabel("HandbookTitle", "研学手册", new Vector2(12f, 66f), 44f, FontStyles.Bold, new Color(0.31f, 0.16f, 0.07f, 1f));
-        CreateLabel("HandbookSubtitle", "寻迹 · 青春", new Vector2(12f, 14f), 23f, FontStyles.Normal, new Color(0.46f, 0.25f, 0.1f, 0.95f));
-        CreateLabel("HandbookBadge", "●  ●  ●  ●", new Vector2(12f, -152f), 20f, FontStyles.Normal, new Color(0.71f, 0.31f, 0.18f, 0.9f));
-    }
-
-    private void CreateDecoration(string name, Vector2 position, Vector2 size, Color color)
-    {
-        if (transform.Find(name) != null) return;
-        GameObject item = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        item.transform.SetParent(transform, false);
-        Image image = item.GetComponent<Image>();
-        image.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
-        image.type = Image.Type.Sliced;
-        image.color = color;
-        image.raycastTarget = false;
-        RectTransform itemRect = item.GetComponent<RectTransform>();
-        itemRect.anchoredPosition = position;
-        itemRect.sizeDelta = size;
-    }
-
-    private void CreateLabel(string name, string text, Vector2 position, float fontSize, FontStyles style, Color color)
-    {
-        if (transform.Find(name) != null) return;
-        GameObject item = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-        item.transform.SetParent(transform, false);
-        TextMeshProUGUI label = item.GetComponent<TextMeshProUGUI>();
-        label.text = text;
-        label.fontSize = fontSize;
-        label.fontStyle = style;
-        label.alignment = TextAlignmentOptions.Center;
-        label.color = color;
-        label.raycastTarget = false;
-        RectTransform itemRect = label.rectTransform;
-        itemRect.anchorMin = new Vector2(0.5f, 0.5f);
-        itemRect.anchorMax = new Vector2(0.5f, 0.5f);
-        itemRect.anchoredPosition = position;
-        itemRect.sizeDelta = new Vector2(330f, 64f);
+        if (hintText != null)
+        {
+            hintText.text = "点击打开研学手册";
+            hintText.raycastTarget = false;
+        }
     }
 
     private static void StyleOpenPanel(Transform panel)
     {
+        RectTransform panelRect = panel as RectTransform;
+        if (panelRect != null) panelRect.sizeDelta = new Vector2(980f, 680f);
+
         Image image = panel.GetComponent<Image>();
         if (image != null)
         {
-            image.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
-            image.type = Image.Type.Sliced;
+            image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
             image.color = new Color(0.99f, 0.94f, 0.82f, 0.98f);
         }
 

@@ -72,6 +72,7 @@ public sealed class PrologueTaskEnding : MonoBehaviour
 
         PreparePopupAnimation();
         taskPopup.SetActive(true);
+        PrologueAudioBindings.PlayQuestPopup();
         yield return FadeAndScale(popupGroup, popupRect, 0f, 1f, 0.78f, 1f, 0.3f);
 
         yield return Fade(taskTitleGroup, 0f, 1f, 0.18f);
