@@ -4,7 +4,7 @@ public sealed class GameProgress : MonoBehaviour
 {
     public static GameProgress Instance { get; private set; }
 
-    [SerializeField] private bool hasRedMemory = true;
+    [SerializeField] private bool hasRedMemory;
     [SerializeField] private bool hasHometownMemory;
     [SerializeField] private bool hasYouthMemory;
     [SerializeField] private bool hasVillageMemory;
@@ -39,6 +39,17 @@ public sealed class GameProgress : MonoBehaviour
 
         GameObject progressObject = new GameObject("GameProgress");
         return progressObject.AddComponent<GameProgress>();
+    }
+
+    public bool TryGrantRedMemory()
+    {
+        if (hasRedMemory)
+        {
+            return false;
+        }
+
+        hasRedMemory = true;
+        return true;
     }
 
     public bool TryGrantHometownMemory()

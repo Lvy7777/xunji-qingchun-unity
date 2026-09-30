@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -37,7 +38,8 @@ public sealed class GlobalPresentationBootstrap : MonoBehaviour
 
     private void Start()
     {
-        ApplyToScene(SceneManager.GetActiveScene());
+        StartCoroutine(ApplyWhenReady(SceneManager.GetActiveScene()));
+        StartCoroutine(MaintainDynamicUi());
     }
 
     private void OnDestroy()
@@ -47,24 +49,39 @@ public sealed class GlobalPresentationBootstrap : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        StartCoroutine(ApplyWhenReady(scene));
+    }
+
+    private IEnumerator ApplyWhenReady(Scene scene)
+    {
         ApplyToScene(scene);
+        yield return null;
+        ApplyToScene(scene);
+        yield return new WaitForSecondsRealtime(0.35f);
+        ApplyToScene(scene);
+        yield return new WaitForSecondsRealtime(0.85f);
+        ApplyToScene(scene);
+    }
+
+    private IEnumerator MaintainDynamicUi()
+    {
+        WaitForSecondsRealtime interval = new WaitForSecondsRealtime(1.25f);
+        while (true)
+        {
+            yield return interval;
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (activeScene.IsValid() && activeScene.isLoaded)
+            {
+                ApplyToScene(activeScene);
+            }
+        }
     }
 
     private static void ApplyToScene(Scene scene)
     {
         PortraitDisplayController.ApplyToLoadedScene(scene);
         HandbookCoverController.ApplyToLoadedScene(scene);
-
-        Button[] buttons = Object.FindObjectsOfType<Button>(true);
-        for (int i = 0; i < buttons.Length; i++)
-        {
-            if (scene.name == "Prologue" &&
-                buttons[i].gameObject.scene == scene &&
-                buttons[i].GetComponent<UIButtonAnimator>() == null)
-            {
-                buttons[i].gameObject.AddComponent<UIButtonAnimator>();
-            }
-        }
+        ClayThemeRuntime.ApplyToLoadedScene(scene);
 
         TMP_FontAsset bodyFont = Resources.Load<TMP_FontAsset>("Fonts/HYAoJiaoTiJian/HYAoJiaoTiJian");
         if (bodyFont == null)
