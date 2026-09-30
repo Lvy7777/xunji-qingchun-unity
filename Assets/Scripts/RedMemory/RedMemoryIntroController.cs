@@ -95,8 +95,11 @@ public sealed class RedMemoryIntroController : MonoBehaviour
         gameplayHud.SetActive(false);
         PlayBgm(RedMemory_Story_BGM);
         fadePanel.gameObject.SetActive(true);
+        fadePanel.raycastTarget = true;
         fadePanel.color = Color.black;
         yield return FadeGraphic(fadePanel, 1f, 0f, 0.75f);
+        fadePanel.raycastTarget = false;
+        fadePanel.gameObject.SetActive(false);
         yield return PlayChapterTitle();
         dialogueRoot.SetActive(true);
         yield return ShowLine("小禾", "老师，他们是谁？");
@@ -218,16 +221,24 @@ public sealed class RedMemoryIntroController : MonoBehaviour
 
         Destroy(storyRoot);
         storyRoot = UiContainer("StoryRoot", canvas.transform);
-        UiContainer("PortraitRoot", storyRoot.transform);
-        dialogueRoot = UiContainer("DialogueRoot", storyRoot.transform);
-        choiceRoot = UiContainer("ChoiceRoot", storyRoot.transform);
-
         Image storyBackdrop = ImageObject("StoryBackground", storyRoot.transform, new Color(0.24f, 0.10f, 0.11f, 1f), Vector2.zero, Vector2.one);
+        storyBackdrop.raycastTarget = false;
         CreateText("PlaceLabel", storyBackdrop.transform, "红色文化实践点", 30, new Color(1f, 0.88f, 0.72f), TextAlignmentOptions.TopLeft, new Vector2(0.05f, 0.88f), new Vector2(0.45f, 0.96f));
         storyDimmer = ImageObject("StoryDimmer", storyRoot.transform, new Color(0f, 0f, 0f, 0f), Vector2.zero, Vector2.one);
         storyDimmer.raycastTarget = false;
 
-        BuildPortraits(storyRoot.transform.Find("PortraitRoot"));
+        GameObject portraitRoot = UiContainer("PortraitRoot", storyRoot.transform);
+        dialogueRoot = UiContainer("DialogueRoot", storyRoot.transform);
+        choiceRoot = UiContainer("ChoiceRoot", storyRoot.transform);
+
+        storyBackdrop.transform.SetAsFirstSibling();
+        storyDimmer.transform.SetSiblingIndex(1);
+        portraitRoot.transform.SetSiblingIndex(2);
+        dialogueRoot.transform.SetSiblingIndex(3);
+        choiceRoot.transform.SetSiblingIndex(4);
+        choiceRoot.transform.SetAsLastSibling();
+
+        BuildPortraits(portraitRoot.transform);
         BuildDialogue(dialogueRoot.transform);
         BuildChoices(choiceRoot.transform);
         BuildMission(canvas.transform);
@@ -237,6 +248,8 @@ public sealed class RedMemoryIntroController : MonoBehaviour
         BuildRewardHandbookCompletion(canvas.transform);
 
         fadePanel = ImageObject("FadePanel", canvas.transform, Color.black, Vector2.zero, Vector2.one);
+        fadePanel.raycastTarget = false;
+        fadePanel.gameObject.SetActive(false);
         fadePanel.transform.SetAsLastSibling();
         ClayThemeRuntime.ApplyCanvas(canvas, "RedMemory");
     }
@@ -536,11 +549,13 @@ public sealed class RedMemoryIntroController : MonoBehaviour
         {
             Player.SetInputEnabled(false);
             fadePanel.transform.SetAsLastSibling(); fadePanel.gameObject.SetActive(true);
+            fadePanel.raycastTarget = true;
             yield return FadeGraphic(fadePanel, 0f, 0.62f, 0.15f);
             Player.Respawn(lastSafePosition);
             cameraFollow.Snap();
             PlaySfx(PlayerRespawn);
             yield return FadeGraphic(fadePanel, 0.62f, 0f, 0.18f);
+            fadePanel.raycastTarget = false;
             fadePanel.gameObject.SetActive(false);
         }
         yield return new WaitForSeconds(1f);
@@ -752,6 +767,7 @@ public sealed class RedMemoryIntroController : MonoBehaviour
     private static GameObject Panel(string name, Transform parent, Color color, Vector2 min, Vector2 max)
     {
         Image image = ImageObject(name, parent, color, min, max);
+        image.raycastTarget = false;
         image.gameObject.AddComponent<CanvasGroup>();
         return image.gameObject;
     }
@@ -760,7 +776,7 @@ public sealed class RedMemoryIntroController : MonoBehaviour
     {
         GameObject item = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image)); item.transform.SetParent(parent, false);
         RectTransform rect = item.GetComponent<RectTransform>(); rect.anchorMin = min; rect.anchorMax = max; rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero;
-        Image image = item.GetComponent<Image>(); image.color = color; return image;
+        Image image = item.GetComponent<Image>(); image.color = color; image.raycastTarget = false; return image;
     }
 
     private static TMP_Text CreateText(string name, Transform parent, string value, float size, Color color, TextAlignmentOptions alignment, Vector2 min, Vector2 max)
@@ -774,6 +790,7 @@ public sealed class RedMemoryIntroController : MonoBehaviour
     private static Button ButtonObject(string name, Transform parent, string label, Vector2 min, Vector2 max, UnityEngine.Events.UnityAction action)
     {
         Image image = ImageObject(name, parent, new Color(0.66f, 0.18f, 0.15f, 1f), min, max);
+        image.raycastTarget = true;
         Button button = image.gameObject.AddComponent<Button>(); button.onClick.AddListener(action); image.gameObject.AddComponent<UIButtonAnimator>();
         CreateText("Label", image.transform, label, 26, Color.white, TextAlignmentOptions.Center, Vector2.zero, Vector2.one);
         return button;

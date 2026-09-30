@@ -158,3 +158,16 @@ RedMemory 在运行时整理为：
 - 关卡布局与手感已形成完整可玩第一轮；收到正式美术后仍需按素材实际尺寸做一次视觉间距与碰撞边界复验。
 - 历史卡严格保留资料占位文字，等待用户提供真实历史资料。
 - 未继续 P-003。
+
+---
+
+## P-002.1 Manual Interaction Hotfix
+
+- `RedMemoryIntroController.BuildUi()` 不再依赖对象创建顺序：`StoryBackground` 显式 `SetAsFirstSibling()`，随后依次固定 `StoryDimmer`、`PortraitRoot`、`DialogueRoot`、`ChoiceRoot` 的 sibling index；`ChoiceRoot` 再执行 `SetAsLastSibling()`，确保选项位于剧情交互最上层。
+- `StoryBackground`、`StoryDimmer`、普通 Panel 背景、装饰 Image 与 CursorEffect 视觉层均不接收 Raycast；按钮 Image 明确保留 `raycastTarget = true`。
+- `FadePanel` 默认关闭且 `raycastTarget = false`；仅在开场淡入或掉落重生过渡期间临时启用并阻挡输入，淡出结束立即恢复 `raycastTarget = false` 并隐藏，避免透明全屏层持续截获点击。
+- 已进行真实鼠标点击验收，未调用 `AdvanceDialogue`、`SelectChoice` 或 `StartInvestigation` 代替玩家操作：第一句 → 继续 → 第二句 → 继续 → 第三句 → 继续 → 选择“我们一起去找答案吧” → 继续 → MissionPanel → 开始寻迹，全路径成功进入 GameplayRoot。
+- 人工验收中确认小禾 / 志愿者人物随说话者切换，SpeakerName、DialogueText、打字机完成后的“继续”按钮、两个剧情选项与任务卡均正常显示且可点击。
+- 进入 GameplayRoot 后用真实键盘输入测试了 D 与 Space；Space 可见角色执行跳跃，横版关卡保持可操作。
+- `RedMemoryPlayModeVerifier` 仍只由显式 `Run()` 启动；新增当前 Unity 进程 ID 绑定，发现跨进程遗留 ActiveKey 时立即清理并拒绝订阅。普通用户点击 Play 不再被自动接管，测试结束清理 ActiveKey 及相关 SessionState。
+- Unity 重新编译后普通 Play 全程未自动推进；本次真实剧情 → Mission → Gameplay 路径验收成功。

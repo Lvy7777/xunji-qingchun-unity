@@ -14,6 +14,7 @@ public static class RedMemoryPlayModeVerifier
     private const string StageKey = "P002.Verifier.Stage";
     private const string DamageKey = "P002.Verifier.Damage";
     private const string SuccessKey = "P002.Verifier.Success";
+    private const string ProcessKey = "P002.Verifier.ProcessId";
     private static float nextAction;
 
     private static int cycle { get => SessionState.GetInt(CycleKey, 0); set => SessionState.SetInt(CycleKey, value); }
@@ -24,6 +25,11 @@ public static class RedMemoryPlayModeVerifier
     static RedMemoryPlayModeVerifier()
     {
         if (!SessionState.GetBool(ActiveKey, false)) return;
+        if (SessionState.GetInt(ProcessKey, -1) != System.Diagnostics.Process.GetCurrentProcess().Id)
+        {
+            ClearSessionState();
+            return;
+        }
         Subscribe();
         nextAction = (float)EditorApplication.timeSinceStartup + 1f;
     }
@@ -34,6 +40,7 @@ public static class RedMemoryPlayModeVerifier
         stage = 0;
         damageCount = 0;
         success = false;
+        SessionState.SetInt(ProcessKey, System.Diagnostics.Process.GetCurrentProcess().Id);
         SessionState.SetBool(ActiveKey, true);
         Subscribe();
         EditorSceneManager.OpenScene("Assets/Scenes/RedMemory.unity");
@@ -55,6 +62,13 @@ public static class RedMemoryPlayModeVerifier
 
     private static void Tick()
     {
+        if (!SessionState.GetBool(ActiveKey, false) ||
+            SessionState.GetInt(ProcessKey, -1) != System.Diagnostics.Process.GetCurrentProcess().Id)
+        {
+            EditorApplication.update -= Tick;
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            return;
+        }
         if (!EditorApplication.isPlaying || EditorApplication.timeSinceStartup < nextAction) return;
         try
         {
@@ -203,10 +217,20 @@ public static class RedMemoryPlayModeVerifier
 
     private static void CleanupAndExit(int code)
     {
-        SessionState.SetBool(ActiveKey, false);
+        ClearSessionState();
         EditorApplication.update -= Tick;
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
         EditorApplication.Exit(code);
+    }
+
+    private static void ClearSessionState()
+    {
+        SessionState.SetBool(ActiveKey, false);
+        SessionState.EraseInt(ProcessKey);
+        SessionState.EraseInt(CycleKey);
+        SessionState.EraseInt(StageKey);
+        SessionState.EraseInt(DamageKey);
+        SessionState.EraseBool(SuccessKey);
     }
 
     private static void Subscribe()
