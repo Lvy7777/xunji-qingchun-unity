@@ -14,13 +14,13 @@ TagManager:
   - 
   - 
   - Platform
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Player
+  - Enemy
+  - PlayerAttack
+  - Hazard
+  - Ground
+  - Pickup
+  - Trigger
   - 
   - 
   - 

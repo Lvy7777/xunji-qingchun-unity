@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-public enum RedMemoryPickupKind { Fragment, ClueKey }
+public enum RedMemoryPickupKind { Fragment, ClueKey, MemoryGlow, HealingFlower }
 
 [RequireComponent(typeof(Collider2D))]
 public sealed class RedMemoryPickup : MonoBehaviour
@@ -30,7 +30,7 @@ public sealed class RedMemoryPickup : MonoBehaviour
         float phase = index * 0.83f;
         transform.position = basePosition + Vector3.up * (Mathf.Sin(Time.time * 2.2f + phase) * 0.12f);
         transform.localScale = baseScale * (1f + Mathf.Sin(Time.time * 2.8f + phase) * 0.035f);
-        RedMemoryPlayerController player = chapter.Player;
+        RedMemoryPlayerController player = chapter != null ? chapter.Player : null;
         if (sprite != null && player != null)
         {
             float proximity = 1f - Mathf.Clamp01(Vector2.Distance(player.transform.position, transform.position) / 2.5f);
@@ -106,25 +106,54 @@ public sealed class RedMemoryParallaxLayer : MonoBehaviour
 {
     private Transform cameraTransform;
     private Vector3 origin;
+    private float cameraOriginX;
     private float factor;
-    public void Configure(Transform targetCamera, float movementFactor) { cameraTransform = targetCamera; factor = movementFactor; origin = transform.position; }
+    public void Configure(Transform targetCamera, float movementFactor)
+    {
+        cameraTransform = targetCamera;
+        factor = movementFactor;
+        origin = transform.position;
+        cameraOriginX = targetCamera != null ? targetCamera.position.x : 0f;
+    }
     private void LateUpdate()
     {
         if (cameraTransform == null) return;
-        transform.position = new Vector3(origin.x + cameraTransform.position.x * factor, origin.y, origin.z);
+        float cameraDelta = cameraTransform.position.x - cameraOriginX;
+        transform.position = new Vector3(origin.x + cameraDelta * (1f - factor), origin.y, origin.z);
     }
 }
 
 public sealed class RedMemoryCameraFollow : MonoBehaviour
 {
     private Transform target;
+    private Rigidbody2D targetBody;
     private Vector3 velocity;
-    public void Configure(Transform followTarget) => target = followTarget;
-    public void Snap() { if (target != null) transform.position = new Vector3(Mathf.Clamp(target.position.x + 2f, 9f, 49f), 1.5f, -10f); }
+    private Camera followCamera;
+    private float defaultSize;
+    public void Configure(Transform followTarget)
+    {
+        target = followTarget;
+        targetBody = target != null ? target.GetComponent<Rigidbody2D>() : null;
+        followCamera = GetComponent<Camera>();
+        defaultSize = followCamera != null ? followCamera.orthographicSize : 5.2f;
+    }
+    public void Snap() { if (target != null) transform.position = DesiredPosition(); }
     private void LateUpdate()
     {
         if (target == null) return;
-        Vector3 desired = new Vector3(Mathf.Clamp(target.position.x + 2f, 9f, 49f), 1.5f, -10f);
-        transform.position = Vector3.SmoothDamp(transform.position, desired, ref velocity, 0.22f);
+        Vector3 desired = DesiredPosition();
+        transform.position = Vector3.SmoothDamp(transform.position, desired, ref velocity, 0.24f);
+        if (followCamera != null)
+        {
+            float targetSize = target.position.x > 65f && target.position.x < 111f ? defaultSize + 0.65f : defaultSize;
+            followCamera.orthographicSize = Mathf.Lerp(followCamera.orthographicSize, targetSize, Time.deltaTime * 2.2f);
+        }
+    }
+    private Vector3 DesiredPosition()
+    {
+        float horizontalVelocity = targetBody != null ? targetBody.velocity.x : 0f;
+        float lookAhead = Mathf.Clamp(horizontalVelocity * 0.38f, -2.2f, 2.8f);
+        float vertical = Mathf.Clamp(target.position.y + 1.8f, 1.25f, 3.4f);
+        return new Vector3(Mathf.Clamp(target.position.x + lookAhead, 9f, 139f), vertical, -10f);
     }
 }

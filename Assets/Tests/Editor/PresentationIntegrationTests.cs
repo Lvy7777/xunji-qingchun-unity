@@ -30,7 +30,7 @@ public sealed class PresentationIntegrationTests
 
         Assert.That(xiaoHeArtwork.sprite, Is.Not.Null);
         Assert.That(volunteerArtwork.sprite, Is.Not.Null);
-        Assert.That(xiaoHeArtwork.sprite.name, Is.EqualTo("XiaoHe_Front"));
+        Assert.That(xiaoHeArtwork.sprite.name, Is.EqualTo("LiTuoTuo_Front"));
         Assert.That(volunteerArtwork.sprite.name, Is.EqualTo("Volunteer_Front"));
         Assert.That(xiaoHeArtwork.raycastTarget, Is.False);
         Assert.That(volunteerArtwork.raycastTarget, Is.False);

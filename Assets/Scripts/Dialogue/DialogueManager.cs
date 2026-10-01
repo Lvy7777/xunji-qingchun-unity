@@ -261,7 +261,7 @@ private IEnumerator AnimateSpeakerVisuals(DialogueSpeaker speaker)
         switch (speaker)
         {
             case DialogueSpeaker.XiaoHe:
-                return "小禾";
+                return "栗拓拓";
             case DialogueSpeaker.Volunteer:
                 return "志愿者";
             default:

@@ -171,3 +171,54 @@ RedMemory 在运行时整理为：
 - 进入 GameplayRoot 后用真实键盘输入测试了 D 与 Space；Space 可见角色执行跳跃，横版关卡保持可操作。
 - `RedMemoryPlayModeVerifier` 仍只由显式 `Run()` 启动；新增当前 Unity 进程 ID 绑定，发现跨进程遗留 ActiveKey 时立即清理并拒绝订阅。普通用户点击 Play 不再被自动接管，测试结束清理 ActiveKey 及相关 SessionState。
 - Unity 重新编译后普通 Play 全程未自动推进；本次真实剧情 → Mission → Gameplay 路径验收成功。
+
+---
+
+## P-002.2 第一章正式背景美术接入
+
+- 已导入 `R_ART_001_RedMemory_Background_Back.png`、`R_ART_002_RedMemory_Background_Mid.png`、`R_ART_003_RedMemory_Background_Front.png`，三张纹理均设置为 `Sprite (2D and UI)`、Single Sprite、Full Rect；开启透明通道与 `alphaIsTransparency`，关闭 Mipmap，未裁切透明边缘。
+- `RedMemoryIntroController` 的三个 Inspector 插槽已分别绑定 Back / Mid / Front 正式资源；运行时继续固定生成 `BackgroundRoot/BG_Back`、`BG_Mid`、`BG_Front`，排序值依次为 -15 / -14 / -13。
+- 正式图片按相机可视高度统一等比缩放，三层运行时缩放均为 `(1.149, 1.149)`；未使用非等比拉伸，因此在 2560×1440 Game View 中没有压扁、拉长或大面积留白。
+- 视差层以相机初始位置为基准，根据相机位移应用 0.04 / 0.09 / 0.14 的轻微差速：Back 最慢、Mid 次之、Front 稍快；不会因视差初始化把背景整体推离视口。
+- 原 StoryBackground 的整屏深红占位改为低透明度氛围遮罩，正式世界背景可在章节标题、剧情与 Gameplay 中持续显示；未发现整屏纯色背景残留。
+- Play Mode 实机截图确认三层均成功显示。Front 的透明中心可正常透出村落、山景和天空，同时保留前景枫树、灯笼、花草与石栏；对话框、HUD 与角色层未被遮挡，未发现明显错位。
+- 运行态检查结果：`BG_Back`、`BG_Mid`、`BG_Front` 全部 active，Sprite 名称与三个正式资源逐一匹配，均带 `RedMemoryParallaxLayer`；Unity Console 为 0 error / 0 warning。
+- 验收截图：`Assets/Screenshots/P-002.2_PlayMode_Check.png`。
+- 已使用用户提供的角色设定图作为视觉参考，生成透明背景的正面全身志愿者立绘，并替换共享资源 `Assets/Resources/Characters/Volunteer_Front.png`。所有通过 `Resources/Characters/Volunteer_Front` 读取志愿者的场景会使用新角色；未修改剧情、关卡规则、对话文本或其他 gameplay 逻辑。
+- 本轮没有执行未定义的全游戏玩法“大改”；该需求与本轮“不要修改剧情、关卡逻辑”的边界冲突，留待独立任务明确玩法、UI、关卡或手感的改造范围后实施。
+
+---
+
+## P-002.7 RedMemory Gameplay Deep Polish
+
+### 完成状态
+
+- 实现已完成；剧情主线、史料卡、红色记忆奖励与第二章入口未改。
+- 自动 EditMode 测试 22 / 22 通过，Play Mode 组件级集成验证通过，Console 0 error。
+- 真人键盘完整跑关未由本自动化环境伪造；仍需用户在 Unity Game View 按文末清单完成最后一次手动验收。
+
+### 系统清单
+
+1. **8 个 Area：已完成。** `Area_01` 至 `Area_08` 依次承担基础教学、屋巷探索、首个敌人、移动平台、钥匙支路、机关组合、滚石追逐、记忆修复与纪念区收尾。
+2. **两种敌人：已完成。** `MemoryCreeperEnemy` / 墨团仔左右巡逻；`JumpBlobEnemy` / 跃团仔具有 0.55 秒压低预警、抛物线跳跃、2 HP 与攻击恢复。`EnemyBase` 拆分 Idle / Patrol / Alert / Attack / Hurt / Recover / Defeated 状态，AttackBox 与 Hurtbox 为独立 Collider。
+3. **栗拓拓跳踩：已完成。** 仅在竖直速度为负、脚部位于敌人顶部容差内且角色中心明显更高时成立；侧碰不会误判跳踩。
+4. **GroundStomp：已完成。** 空中 S / ↓ 触发 0.08 秒停顿后快速下坠，落地冲击可对跃团仔造成 2 点伤害、立即破坏易碎平台并激活记忆修复点。
+5. **受伤 / 击退 / 无敌帧：已完成。** 水平输入短暂中断、横向击退与小幅上弹、Hurt 状态、半透明闪烁、约 1 秒无敌、镜头轻震、红色屏幕闪光与 HUD 抖动均已接线。同帧双重接触测试只扣 1 血。
+6. **MovingPlatform：已完成。** 左右、上下和钥匙支路共 3 个平台；玩家登上后临时挂在平台 Transform 下，Play Mode 验证位移跟随正常。
+7. **CrumblingPlatform：已完成。** 0.75 秒抖动与变色预警，随后失效，3 秒后重生；下压可立即破坏。
+8. **FallingRock：已完成。** 触发后地面影子在 0.6 秒内放大，落石着地执行距离伤害判定、震屏与音效插槽，冷却 2.5 秒。
+9. **RollingBoulder：已完成。** `Area_07` 触发后进行约 9 秒追逐，碰撞扣 1 血而非秒杀，路线不放必须碎片。
+10. **Checkpoint：已完成。** `Area_03` 与 `Area_06` 后设红色记录牌；死亡界面的「重新尝试」原地恢复 3 颗心并从最近记录点继续，本局核心碎片不重置。
+11. **MemoryRepairPoint：已完成。** `Area_08` 中下压激活记忆断层，桥体在 0.65 秒内由红橙光点标记处聚合成型。
+12. **三类奖励：已完成。** 5 枚固定记忆碎片、记忆微光 +10、小红花 +1 体力（上限 3）；敌人击败后生成一次性奖励，正式碎片不随机掉落。
+13. **Play Mode 测试：** 已通过实时物理场景验证：运行时生成 8 区域、3 个敌人、3 个移动平台、2 个易碎平台；双重碰撞无敌帧、敌人 1/2 HP、移动平台携带、记录点、桥体修复、落石与滚石触发均正常。真人从 Area_01 键盘跑到 Area_08 仍标记待验收。
+14. **仍缺正式美术：** 墨团仔、跃团仔完整动画；栗拓拓 GroundStomp / Defeat 独立 Sprite；青砖、青瓦墙、石阶、移动平台、易碎地形裂纹、落石、滚石、记录牌、记忆修复点、记忆微光、小红花、特效粒子与纪念区前景。当前均为程序化可替换占位。
+15. **仍缺正式音乐 / SFX：** `RedMemory_Gameplay_BGM`、`PlayerJump`、`PlayerLand`、`PlayerHurt`、`PlayerStomp`、`EnemyAlert`、`EnemyHit`、`EnemyDefeat`、`FragmentCollect`、`GlowCollect`、`HealCollect`、`KeyCollect`、`CheckpointActivate`、`CrumbleWarning`、`PlatformBreak`、`RockWarning`、`RockImpact`、`BoulderRoll`、`RepairStart`、`RepairComplete`、`GoalUnlock`、`ChapterClear`。已建立 `AudioClip` 插槽，未联网下载。
+
+### 验证与截图
+
+- EditMode：22 passed / 0 failed。
+- Play Mode Console：0 errors（编译、NullReference、Missing Reference 均未发现）。
+- 验证截图：`Assets/Screenshots/P-002.7_Gameplay_Verification.png`。
+- 物理 Layer 已在 `TagManager.asset` 划分：Player / Enemy / PlayerAttack / Hazard / Ground / Pickup / Trigger，运行时对旧 Editor 缓存具有 Default 层回退，避免无效索引。
+- 未继续第二章。

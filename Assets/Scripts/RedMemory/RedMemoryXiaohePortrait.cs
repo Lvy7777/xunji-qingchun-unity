@@ -8,13 +8,13 @@ public sealed class RedMemoryXiaohePortrait : MonoBehaviour
     {
         yield return null;
 
-        Texture2D portraitTexture = Resources.Load<Texture2D>("Characters/XiaohePortrait_v1");
+        Texture2D portraitTexture = Resources.Load<Texture2D>("Characters/LiTuoTuo_Front");
         GameObject actor = GameObject.Find("XiaoHe");
         Transform placeholder = actor != null ? actor.transform.Find("PortraitPlaceholder") : null;
 
         if (portraitTexture == null || placeholder == null)
         {
-            Debug.LogWarning("[RedMemory] Xiaohe portrait could not be bound.");
+            Debug.LogWarning("[RedMemory] LiTuoTuo portrait could not be bound.");
             yield break;
         }
 

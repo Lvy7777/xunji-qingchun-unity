@@ -8,13 +8,13 @@ public sealed class HometownMemoryFlowRegressionTests
     private static string ProjectRoot => Directory.GetParent(Application.dataPath).FullName;
 
     [Test]
-    public void DialogueManager_KeepsInactiveDialogueCharacterDimmed()
+    public void DialogueManager_HidesInactiveDialogueCharacter()
     {
         string source = ReadSource("Assets/Scripts/Dialogue/DialogueManager.cs");
 
-        Assert.That(source, Does.Contain("inactiveSpeakerAlpha = 0.5f"));
-        Assert.That(source, Does.Contain("speaker == DialogueSpeaker.XiaoHe ? 1f : inactiveSpeakerAlpha"));
-        Assert.That(source, Does.Contain("speaker == DialogueSpeaker.Volunteer ? 1f : inactiveSpeakerAlpha"));
+        Assert.That(source, Does.Contain("speaker == DialogueSpeaker.XiaoHe ? 1f : 0f"));
+        Assert.That(source, Does.Contain("speaker == DialogueSpeaker.Volunteer ? 1f : 0f"));
+        Assert.That(source, Does.Contain("group.gameObject.SetActive(targetAlpha > 0.01f)"));
         Assert.That(source, Does.Contain("SetCharactersVisibleForExploration"));
     }
 
@@ -51,12 +51,13 @@ public sealed class HometownMemoryFlowRegressionTests
     }
 
     [Test]
-    public void RedMemory_KeepsInactiveDialogueCharacterDimmed()
+    public void RedMemory_ShowsOnlyTheCurrentDialogueSpeaker()
     {
         string source = ReadSource("Assets/Scripts/RedMemory/RedMemoryIntroController.cs");
 
-        Assert.That(source, Does.Contain("SetActorVisual(xiaoHe, speaker == \"小禾\", hideAllActors);"));
-        Assert.That(source, Does.Contain("group.alpha = isSpeaking ? 1f : 0.5f;"));
+        Assert.That(source, Does.Contain("yield return FadePortrait(xiaoHeGroup, speaker == \"栗拓拓\");"));
+        Assert.That(source, Does.Contain("yield return FadePortrait(volunteerGroup, speaker == \"志愿者\");"));
+        Assert.That(source, Does.Contain("if (!visible) group.gameObject.SetActive(false);"));
     }
 
     [Test]

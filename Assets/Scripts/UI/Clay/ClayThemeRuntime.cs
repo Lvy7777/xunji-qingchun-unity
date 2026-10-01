@@ -38,6 +38,8 @@ public static class ClayThemeRuntime
 
     private static void ApplyCanvasInternal(Canvas canvas, string sceneName, bool addDecorations)
     {
+        if (canvas.GetComponent<ClayThemeOptOut>() != null) return;
+
         Image[] images = canvas.GetComponentsInChildren<Image>(true);
         for (int i = 0; i < images.Length; i++)
         {

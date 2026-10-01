@@ -9,7 +9,8 @@ using UnityEngine.UI;
 /// </summary>
 public sealed class PortraitDisplayController : MonoBehaviour
 {
-    private const string XiaoHeResource = "Characters/XiaoHe_Front";
+    // Internal hierarchy names stay unchanged for scene compatibility; the visible protagonist is 栗拓拓.
+    private const string XiaoHeResource = "Characters/LiTuoTuo_Front";
     private const string VolunteerResource = "Characters/Volunteer_Front";
     private const string ArtworkName = "ClayCharacterArtwork";
 
