@@ -42,12 +42,18 @@ public sealed class CrumblingPlatform : MonoBehaviour
     private Vector3 basePosition;
     private bool running;
     private RedMemoryIntroController chapter;
+    private Transform crackOverlay;
+    private Transform fragmentRoot;
     public void Configure(RedMemoryIntroController owner) => chapter = owner;
     private void Awake()
     {
         platformCollider = GetComponent<Collider2D>();
         sprite = GetComponent<SpriteRenderer>();
         basePosition = transform.position;
+        crackOverlay = transform.Find("CrackOverlay");
+        fragmentRoot = transform.Find("Fragments");
+        if (crackOverlay != null) crackOverlay.gameObject.SetActive(false);
+        if (fragmentRoot != null) fragmentRoot.gameObject.SetActive(false);
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {
@@ -61,22 +67,50 @@ public sealed class CrumblingPlatform : MonoBehaviour
     {
         running = true;
         chapter.NotifyCrumbleWarning(transform.position);
+        if (crackOverlay != null) crackOverlay.gameObject.SetActive(true);
         float duration = delay >= 0f ? delay : warningDuration;
         float elapsed = 0f;
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             transform.position = basePosition + (Vector3)Random.insideUnitCircle * Mathf.Lerp(0.015f, 0.07f, elapsed / duration);
-            if (sprite != null) sprite.color = Color.Lerp(Color.white, new Color(0.85f, 0.48f, 0.25f), elapsed / duration);
+            float stage = Mathf.Clamp01(elapsed / duration);
+            if (sprite != null) sprite.color = Color.Lerp(Color.white, new Color(0.86f, 0.42f, 0.18f), stage);
+            if (crackOverlay != null) crackOverlay.localScale = Vector3.one * Mathf.Lerp(0.35f, 1f, stage);
             yield return null;
         }
         platformCollider.enabled = false;
         if (sprite != null) sprite.enabled = false;
+        if (crackOverlay != null) crackOverlay.gameObject.SetActive(false);
+        if (fragmentRoot != null) fragmentRoot.gameObject.SetActive(true);
         transform.position = basePosition;
         chapter.NotifyPlatformBroken(basePosition);
+        float fallElapsed = 0f;
+        while (fallElapsed < 0.42f)
+        {
+            fallElapsed += Time.deltaTime;
+            if (fragmentRoot != null)
+            {
+                fragmentRoot.localPosition += Vector3.down * (2.4f * Time.deltaTime);
+                fragmentRoot.Rotate(0f, 0f, 90f * Time.deltaTime);
+            }
+            yield return null;
+        }
         yield return new WaitForSeconds(respawnDelay);
+        if (fragmentRoot != null) { fragmentRoot.localPosition = Vector3.zero; fragmentRoot.localRotation = Quaternion.identity; fragmentRoot.gameObject.SetActive(false); }
         platformCollider.enabled = true;
-        if (sprite != null) { sprite.enabled = true; sprite.color = Color.white; }
+        if (sprite != null)
+        {
+            sprite.enabled = true;
+            float fade = 0f;
+            while (fade < 0.3f)
+            {
+                fade += Time.deltaTime;
+                sprite.color = new Color(1f, 1f, 1f, Mathf.Clamp01(fade / 0.3f));
+                yield return null;
+            }
+            sprite.color = Color.white;
+        }
         running = false;
     }
 }
@@ -91,10 +125,16 @@ public sealed class FallingRockTrap : MonoBehaviour
     private float cooldown = 2.5f;
     private float nextReady;
     private bool active;
+    private Transform pebbles;
+    private Transform impactDust;
     public void Configure(RedMemoryIntroController owner, RedMemoryPlayerController target, Transform rockTransform, SpriteRenderer warningShadow)
     {
         chapter = owner; player = target; rock = rockTransform; shadow = warningShadow; rockStart = rock.localPosition;
+        pebbles = transform.Find("PebbleWarning");
+        impactDust = transform.Find("ImpactDust");
         rock.gameObject.SetActive(false); shadow.gameObject.SetActive(false);
+        if (pebbles != null) pebbles.gameObject.SetActive(false);
+        if (impactDust != null) impactDust.gameObject.SetActive(false);
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
@@ -104,14 +144,17 @@ public sealed class FallingRockTrap : MonoBehaviour
     {
         active = true;
         shadow.gameObject.SetActive(true);
+        if (pebbles != null) pebbles.gameObject.SetActive(true);
         chapter.NotifyRockWarning(transform.position);
         float elapsed = 0f;
         while (elapsed < 0.6f)
         {
             elapsed += Time.deltaTime;
             shadow.transform.localScale = Vector3.one * Mathf.Lerp(0.25f, 1.1f, elapsed / 0.6f);
+            if (pebbles != null) pebbles.localPosition = new Vector3(Mathf.Sin(elapsed * 31f) * 0.08f, pebbles.localPosition.y - Time.deltaTime * 0.45f, 0f);
             yield return null;
         }
+        if (pebbles != null) pebbles.gameObject.SetActive(false);
         rock.gameObject.SetActive(true);
         rock.localPosition = rockStart;
         Vector3 end = new Vector3(rockStart.x, -0.2f, rockStart.z);
@@ -124,6 +167,13 @@ public sealed class FallingRockTrap : MonoBehaviour
         }
         if (Vector2.Distance(player.transform.position, rock.position) < 1.15f) chapter.HandleHazard(rock.position);
         chapter.NotifyRockImpact(rock.position);
+        if (impactDust != null)
+        {
+            impactDust.gameObject.SetActive(true);
+            impactDust.localScale = Vector3.one * 0.25f;
+            for (int i = 0; i < 6; i++) { impactDust.localScale += Vector3.one * 0.12f; yield return null; }
+            impactDust.gameObject.SetActive(false);
+        }
         rock.gameObject.SetActive(false);
         shadow.gameObject.SetActive(false);
         nextReady = Time.time + cooldown;
@@ -137,6 +187,7 @@ public sealed class RollingBoulder : MonoBehaviour
     private Transform boulder;
     private Vector3 start;
     private float speed;
+    private float acceleration = 0.42f;
     private bool rolling;
     public void Configure(RedMemoryIntroController owner, Transform visual, float rollSpeed)
     {
@@ -152,16 +203,20 @@ public sealed class RollingBoulder : MonoBehaviour
         boulder.position = start;
         boulder.gameObject.SetActive(true);
         chapter.NotifyBoulderStarted();
+        chapter.FocusCamera(boulder, 0.55f);
         float elapsed = 0f;
+        float currentSpeed = speed;
         while (elapsed < 9f)
         {
             elapsed += Time.deltaTime;
-            boulder.position += Vector3.right * (speed * Time.deltaTime);
-            boulder.Rotate(0f, 0f, -speed * 55f * Time.deltaTime);
+            currentSpeed = Mathf.Min(speed * 1.55f, currentSpeed + acceleration * Time.deltaTime);
+            boulder.position += Vector3.right * (currentSpeed * Time.deltaTime);
+            boulder.Rotate(0f, 0f, -currentSpeed * 55f * Time.deltaTime);
             if (Vector2.Distance(chapter.Player.transform.position, boulder.position) < 1.25f) chapter.HandleHazard(boulder.position);
             yield return null;
         }
         boulder.gameObject.SetActive(false);
+        chapter.NotifyBoulderEnded(boulder.position);
         rolling = false;
     }
 }

@@ -222,3 +222,73 @@ RedMemory 在运行时整理为：
 - 验证截图：`Assets/Screenshots/P-002.7_Gameplay_Verification.png`。
 - 物理 Layer 已在 `TagManager.asset` 划分：Player / Enemy / PlayerAttack / Hazard / Ground / Pickup / Trigger，运行时对旧 Editor 缓存具有 Default 层回退，避免无效索引。
 - 未继续第二章。
+
+---
+
+## P-002.8 RedMemory Second Polish
+
+### 1. 小怪兽第二轮重做状态
+
+- 已完成结构与临时视觉的第二轮重做。敌人根节点下明确拆分 `VisualRoot / Body / MemoryEye / Hurtbox / AttackBox`，并由 `EnemyVisualBinder` 与 `EnemyAnimationDriver` 分别负责资源绑定和状态表现。
+- 统一为圆润、暖色、轻黏土感的“记忆残影”方向：墨团仔不再是纯黑色块，跃团仔保留橙红种子感；Idle / Patrol / Alert / Attack / Hurt / Defeated 状态均可切换 Sprite，缺少正式图时使用程序化精细占位。
+- Inspector 已预留 `R_ENEMY_001` 至 `R_ENEMY_012`，没有写死图片路径；后续可直接替换 ChatGPT 提供的正式图。
+
+### 2. 实现的敌人类型
+
+- 墨团仔：基础巡逻、呼吸弹跳、左右朝向、踩踏压扁、受击回弹、失败消散。
+- 跃团仔：发现玩家后明确压缩蓄力、跳扑、落地恢复窗口，GroundStomp 仍可造成 2 点伤害。
+- 本轮未加入可选叶影仔，避免在正式美术未到时扩张敌人种类；把现有两种做精作为优先级。
+
+### 3. 已优化的陷阱
+
+- 落石：保留地面阴影放大，新增先落小碎石、0.6 秒可读预警、落地尘土扩散和冷却；Area 02 首次出现较宽容，Area 06 再组合使用。
+- 易碎平台：加入抖动、裂纹渐显/变色、碎片掉落、3 秒后渐显恢复的多阶段反馈。
+- 滚石：触发时镜头短暂聚焦后方，速度逐渐增加，保留短追逐和前方跨越路线；离场后给出震动与事件收尾提示。
+
+### 4. 新增陷阱与组合
+
+- 新增乡村环境石刺 `EnvironmentalSpikeTrap`、悬挂摆动物 `SwingingHazard`、主题型记忆断层地面 `MemoryFractureFloor`。
+- 新增 `TrapTelegraphController` 与 `TrapSequenceController`，组合标识分别为：`SEQ_JUMP_ROCK`（跳跃 + 落石）、`SEQ_PLATFORM_SWING`（移动平台 + 摆动物）、`SEQ_ENEMY_CRUMBLE`（敌人 + 易碎平台）。
+- 节奏仍保持紧张段与缓冲段交替；记录点后没有立刻放置伤害体，核心 5 枚碎片不放在滚石追逐的强制危险线上。
+
+### 5. 检查点 / 存档点视觉方案
+
+- 采用方案 A“记忆路牌灯座”：木石感路牌、暖色记忆灯、柔光和激活光圈组成运行时层级。
+- `CheckpointRespawnPoint` 只负责自动记录最新重生位置；`CheckpointVisualController` 负责待机微光、点亮、扩散光圈和永久暖色状态。
+- 激活提示更新为“记忆已记录 · 记录点已更新”，原独立音效插槽继续保留；死亡后仍从最近记录点恢复 3 颗心，既有收集进度不重置。
+- Inspector 已预留 `R_SAVE_001` 至 `R_SAVE_004`。
+
+### 6. 终点收集记忆强化
+
+- 新增 `GoalMemoryGatherController`：锁定态封印、条件缺失闪烁反馈、六枚记忆微光环绕并平滑吸向栗拓拓、中心节点呼吸放大。
+- 条件满足后锁印熄灭，镜头缓动聚焦终点，玩家输入暂停，汇聚完成后 HUD 淡出，再显示历史照片入口；原历史卡、结尾剧情、红色记忆奖励和手册 1 / 4 流程未改。
+- 缺碎片时节点呈弱光并提示“还缺少记忆碎片……”；缺钥匙时线索锁闪亮并提示“似乎还缺少某条重要线索……”；两者都缺时合并提示，避免重复打扰。
+- Inspector 已预留 `R_GOAL_001` 至 `R_GOAL_004`。
+
+### 7. 当前仍为占位美术的内容
+
+- 两种敌人的完整逐帧动画、敌人徽章/叶片等装饰、石刺、摆动物、裂纹、碎片、落石尘土、记忆断层、路牌灯座粒子、终点微光轨迹仍使用程序化 Sprite 与 Transform 动画占位。
+- 占位资源均通过 Inspector 插槽或独立表现组件隔离，不影响碰撞体、伤害逻辑与后续换图。
+
+### 8. 等待 ChatGPT 提供的正式资源
+
+- 敌人：`R_ENEMY_001 ~ R_ENEMY_012`。
+- 检查点：`R_SAVE_001_Checkpoint_Idle`、`R_SAVE_002_Checkpoint_Active`、`R_SAVE_003_Checkpoint_Glow`、`R_SAVE_004_Checkpoint_Effect`。
+- 陷阱：`R_TRAP_001 ~ R_TRAP_005`（落石 / 裂纹 / 石刺 / 摆动物 / 记忆断层）。
+- 终点：`R_GOAL_001 ~ R_GOAL_004`（记忆节点 / 锁定态 / 汇聚微光 / 解锁爆发）。
+- 正式 Enemy Animator Controller、粒子贴图及 `RockWarning / RockImpact / BoulderRoll / CheckpointActivate / GoalUnlock` 分层音效仍待提供。
+
+### 9. 测试结果
+
+- Unity 2022.3.20f1c1 脚本刷新与真实编译通过，Console 0 error。
+- EditMode：25 passed / 0 failed，其中新增 3 项 P-002.8 结构契约测试。
+- PlayMode 自动集成检查：3 个 EnemyVisualBinder、3 个 EnemyAnimationDriver、3 个 TrapSequence、石刺 / 摆动物 / 记忆断层各 1、记录点 2、终点汇聚组件 1；所有运行时 SpriteRenderer 均有有效 Sprite。
+- PlayMode 实测落石触发无异常；终点条件满足后 `photoPrompt=True / hudActive=False / lockedSealActive=False`；两个记录点激活后均长期保持暖色点亮；全过程 Console 0 error。
+- 本轮没有把工具驱动验证冒充“真人实际游玩”。真人从 Area 01 用键盘完整跑到 Area 08、主观判断预警清晰度与手感仍为最终验收待办。
+
+### 10. 第一章仍待优化项
+
+- 正式美术到位后需要按实际 Sprite 尺寸复验敌人 Collider、摆动物扫掠边界、石刺可读性和终点粒子遮挡。
+- 需要真人完整跑关确认 Area 04 摆动节奏、Area 06 敌人 + 易碎平台组合不会过难、滚石速度曲线与检查点复活安全距离。
+- 终点汇聚目前只有单个 `GoalUnlock` 音效插槽；正式音频到位后可拆成吸引、汇聚、完成三层递进声音。
+- 没有修改 Prologue、第一章主线剧情、世界观或第二章，也未开始 P-003。

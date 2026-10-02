@@ -19,6 +19,7 @@ public abstract class EnemyBase : MonoBehaviour
     protected bool acceptingHits = true;
     public RedMemoryEnemyState State { get; protected set; }
     public bool IsDefeated => State == RedMemoryEnemyState.Defeated;
+    public bool FacingLeft => direction < 0f;
 
     public virtual void Configure(RedMemoryIntroController owner, RedMemoryPlayerController target, int hp)
     {
@@ -86,7 +87,6 @@ public sealed class MemoryCreeperEnemy : EnemyBase
         State = RedMemoryEnemyState.Patrol;
         transform.position += Vector3.right * (direction * moveSpeed * Time.deltaTime);
         if (Mathf.Abs(transform.position.x - origin.x) >= patrolDistance) direction *= -1f;
-        if (sprite != null) sprite.flipX = direction < 0f;
     }
 }
 

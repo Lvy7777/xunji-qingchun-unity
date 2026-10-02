@@ -44,6 +44,37 @@ public sealed class RedMemoryIntroController : MonoBehaviour
     [SerializeField] private Sprite XH_Player_Fall;
     [SerializeField] private Sprite XH_Player_Hurt;
     [SerializeField] private Sprite XH_Player_Cheer;
+    [Header("Replaceable P-002.8 enemy art slots")]
+    [SerializeField] private Sprite R_ENEMY_001_Creeper_Idle;
+    [SerializeField] private Sprite R_ENEMY_002_Creeper_Patrol_A;
+    [SerializeField] private Sprite R_ENEMY_003_Creeper_Patrol_B;
+    [SerializeField] private Sprite R_ENEMY_004_Creeper_Hurt;
+    [SerializeField] private Sprite R_ENEMY_005_Creeper_Defeated;
+    [SerializeField] private Sprite R_ENEMY_006_Creeper_Attack;
+    [SerializeField] private Sprite R_ENEMY_007_JumpBlob_Idle;
+    [SerializeField] private Sprite R_ENEMY_008_JumpBlob_Patrol_A;
+    [SerializeField] private Sprite R_ENEMY_009_JumpBlob_Patrol_B;
+    [SerializeField] private Sprite R_ENEMY_010_JumpBlob_Alert;
+    [SerializeField] private Sprite R_ENEMY_011_JumpBlob_Hurt;
+    [SerializeField] private Sprite R_ENEMY_012_JumpBlob_Attack;
+    [SerializeField] private RuntimeAnimatorController MoTuanZaiAnimator;
+    [SerializeField] private RuntimeAnimatorController YueTuanZaiAnimator;
+    [Header("Replaceable P-002.8 checkpoint art slots")]
+    [SerializeField] private Sprite R_SAVE_001_IdleSign;
+    [SerializeField] private Sprite R_SAVE_002_ActiveLamp;
+    [SerializeField] private Sprite R_SAVE_003_Glow;
+    [SerializeField] private Sprite R_SAVE_004_ActivationRing;
+    [Header("Replaceable P-002.8 trap art slots")]
+    [SerializeField] private Sprite R_TRAP_001_FallingRock;
+    [SerializeField] private Sprite R_TRAP_002_CrumbleCrack;
+    [SerializeField] private Sprite R_TRAP_003_Spike;
+    [SerializeField] private Sprite R_TRAP_004_SwingingObstacle;
+    [SerializeField] private Sprite R_TRAP_005_MemoryFracture;
+    [Header("Replaceable P-002.8 goal art slots")]
+    [SerializeField] private Sprite R_GOAL_001_MemoryCore;
+    [SerializeField] private Sprite R_GOAL_002_LockedSeal;
+    [SerializeField] private Sprite R_GOAL_003_GatherMote;
+    [SerializeField] private Sprite R_GOAL_004_UnlockBurst;
     [Header("Replaceable P-002 audio slots")]
     [SerializeField] private AudioClip RedMemory_Story_BGM;
     [SerializeField] private AudioClip RedMemory_Gameplay_BGM;
@@ -125,6 +156,7 @@ public sealed class RedMemoryIntroController : MonoBehaviour
     private int checkpointCount;
     private bool groundStompTutorialShown;
     private bool repairTutorialShown;
+    private GoalMemoryGatherController goalGatherController;
 
     public RedMemoryPlayerController Player { get; private set; }
 
@@ -288,20 +320,39 @@ public sealed class RedMemoryIntroController : MonoBehaviour
 
         CreateEnemy("MemoryCreeper_Area03", hazards, false, new Vector2(42f, -1.62f));
         CreateEnemy("JumpBlob_Area05", hazards, true, new Vector2(76.8f, 2.05f));
-        CreateEnemy("MemoryCreeper_Area06", hazards, false, new Vector2(102f, -1.62f));
+        CreateEnemy("MemoryCreeper_Area06_CrumbleCombo", hazards, false, new Vector2(96.8f, 0.05f));
         CreateCheckpoint("Checkpoint_AfterArea03", hazards, new Vector2(46f, -1.25f));
         CreateCheckpoint("Checkpoint_AfterArea06", hazards, new Vector2(105f, -1.25f));
+        CreateFallingRock("FallingRock_Area02_JumpCombo", hazards, new Vector2(27f, 0.35f));
         CreateFallingRock("FallingRock_Area06", hazards, new Vector2(99f, -1.2f));
+        CreateSpikeStrip("Spikes_Area02", hazards, new Vector2(33.8f, -2.05f), 3);
+        CreateSwingingObstacle("Swing_Area04_PlatformCombo", hazards, new Vector2(55.4f, 2.5f));
+        CreateMemoryFractureFloor("MemoryFracture_Area05", areas[4], new Vector2(84.5f, -2.05f), new Vector2(2.6f, 0.55f));
         CreateRollingBoulder("RollingBoulder_Area07", hazards, new Vector2(106f, -1.3f));
         CreateDiscoveryZone("HiddenRoute_Roof", hazards, new Vector2(29f, 1.3f), new Vector2(5f, 2f));
         CreateDiscoveryZone("HiddenRoute_Key", hazards, new Vector2(78f, 1.4f), new Vector2(6f, 2.4f));
         CreateMemoryRepair("MemoryRepairPoint_Area08", hazards, areas[7], new Vector2(130.5f, -1.35f), new Vector2(135f, -2.1f));
 
-        GameObject goal = WorldSprite("GoalHistoricalPhoto", goalArea, ClaySpriteFactory.Rounded(new Color(0.92f, 0.78f, 0.50f), 100, 130, 0.12f), new Vector3(145f, -1.2f, 0f), new Vector2(1.6f, 2.2f), 3);
+        Sprite goalCoreSprite = R_GOAL_001_MemoryCore != null ? R_GOAL_001_MemoryCore : ClaySpriteFactory.Rounded(new Color(0.92f, 0.78f, 0.50f), 100, 130, 0.12f);
+        GameObject goal = WorldSprite("GoalHistoricalPhoto", goalArea, goalCoreSprite, new Vector3(145f, -1.2f, 0f), new Vector2(1.6f, 2.2f), 3);
         BoxCollider2D goalCollider = goal.AddComponent<BoxCollider2D>();
         goalCollider.isTrigger = true;
         goalCollider.size = new Vector2(2.2f, 3f);
-        goal.AddComponent<RedMemoryGoal>().Configure(this);
+        Sprite sealSprite = R_GOAL_002_LockedSeal != null ? R_GOAL_002_LockedSeal : ClaySpriteFactory.Circle(new Color(0.42f, 0.10f, 0.08f, 0.9f), 64, 612);
+        GameObject seal = WorldSprite("LockedSeal", goal.transform, sealSprite, goal.transform.position + Vector3.up * 0.15f, new Vector2(0.55f, 0.55f), 5);
+        GameObject motes = Child("GatherMotes", goal.transform);
+        motes.transform.position = goal.transform.position;
+        Sprite moteSprite = R_GOAL_003_GatherMote != null ? R_GOAL_003_GatherMote : ClaySpriteFactory.Circle(new Color(1f, 0.48f, 0.12f, 0.9f), 32, 613);
+        for (int i = 0; i < 6; i++)
+        {
+            float angle = i * Mathf.PI * 2f / 6f;
+            GameObject mote = WorldSprite("Mote_" + i, motes.transform, moteSprite, goal.transform.position + new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * 1.15f, Vector2.one * 0.18f, 6);
+            mote.transform.localPosition = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * 1.15f;
+        }
+        motes.SetActive(false);
+        goalGatherController = goal.AddComponent<GoalMemoryGatherController>();
+        goalGatherController.Configure(motes.transform, goal.GetComponent<SpriteRenderer>(), seal.GetComponent<SpriteRenderer>());
+        goal.AddComponent<RedMemoryGoal>().Configure(this, goalGatherController);
     }
 
     private void BuildUi()
@@ -756,9 +807,9 @@ public sealed class RedMemoryIntroController : MonoBehaviour
     public void TryReachGoal()
     {
         if (goalResolved) return;
-        if (fragmentCount < 5 && !hasKey) { ShowToast("这里还不是终点，再仔细找找吧。", 1.8f); return; }
-        if (fragmentCount < 5) { ShowToast("还有一些记忆没有找到……", 1.8f); return; }
-        if (!hasKey) { ShowToast("似乎还缺少打开记忆的线索……", 1.8f); return; }
+        if (fragmentCount < 5 && !hasKey) { if (goalGatherController != null) goalGatherController.ShowMissing(true, true); ShowToast("还缺少记忆碎片与重要线索……", 1.8f); return; }
+        if (fragmentCount < 5) { if (goalGatherController != null) goalGatherController.ShowMissing(true, false); ShowToast("还缺少记忆碎片……", 1.8f); return; }
+        if (!hasKey) { if (goalGatherController != null) goalGatherController.ShowMissing(false, true); ShowToast("似乎还缺少某条重要线索……", 1.8f); return; }
         goalResolved = true;
         PlaySfx(GoalUnlock);
         StartCoroutine(GoalRoutine());
@@ -768,7 +819,9 @@ public sealed class RedMemoryIntroController : MonoBehaviour
     {
         Player.SetInputEnabled(false);
         Player.PlayCheer();
-        yield return new WaitForSecondsRealtime(0.55f);
+        FocusCamera(goalGatherController != null ? goalGatherController.transform : Player.transform, 1.25f);
+        if (goalGatherController != null) yield return goalGatherController.PlayGather(Player.transform);
+        else yield return new WaitForSecondsRealtime(0.55f);
         CanvasGroup hud = gameplayHud.GetComponent<CanvasGroup>();
         yield return FadeGroup(hud, 1f, 0f, 0.3f);
         gameplayHud.SetActive(false);
@@ -918,7 +971,7 @@ public sealed class RedMemoryIntroController : MonoBehaviour
         lastSafePosition = position;
         checkpointCount++;
         PlaySfx(CheckpointActivate);
-        ShowToast("记录点已更新", 1.2f);
+        ShowToast("记忆已记录 · 记录点已更新", 1.45f);
     }
 
     public void DiscoverHiddenArea()
@@ -963,6 +1016,8 @@ public sealed class RedMemoryIntroController : MonoBehaviour
     public void NotifyRockWarning(Vector2 position) => PlaySfx(RockWarning);
     public void NotifyRockImpact(Vector2 position) { PlaySfx(RockImpact); StartCoroutine(CameraShake(0.07f)); }
     public void NotifyBoulderStarted() { PlaySfx(BoulderRoll); ShowToast("滚石来了，向前跑！", 1.1f); }
+    public void NotifyBoulderEnded(Vector2 position) { StartCoroutine(CameraShake(0.08f)); ShowToast("滚石坠入旧巷", 0.9f); }
+    public void FocusCamera(Transform target, float duration) { if (cameraFollow != null) cameraFollow.FocusOn(target, duration); }
     public void NotifyRepairStarted() => PlaySfx(RepairStart);
     public void NotifyRepairCompleted() { PlaySfx(RepairComplete); ShowToast("记忆断层已修复", 1.4f); }
     public void ShowRepairTutorial()
@@ -1028,15 +1083,38 @@ public sealed class RedMemoryIntroController : MonoBehaviour
 
     private void CreateCrumblingPlatform(string name, Transform parent, Vector2 position, Vector2 size)
     {
-        CreatePlatformObject(name, parent, position, size).AddComponent<CrumblingPlatform>().Configure(this);
+        GameObject platform = CreatePlatformObject(name, parent, position, size);
+        Sprite crackSprite = R_TRAP_002_CrumbleCrack != null ? R_TRAP_002_CrumbleCrack : ClaySpriteFactory.Rounded(new Color(0.92f, 0.38f, 0.16f, 0.78f), 96, 20, 0.18f, 401);
+        GameObject crack = WorldSprite("CrackOverlay", platform.transform, crackSprite, position, new Vector2(0.8f, 0.16f), 2);
+        crack.transform.localPosition = Vector3.zero;
+        GameObject fragments = Child("Fragments", platform.transform);
+        for (int i = 0; i < 3; i++)
+        {
+            GameObject fragment = WorldSprite("Fragment_" + i, fragments.transform, crackSprite, position, new Vector2(0.22f, 0.18f), 2);
+            fragment.transform.localPosition = new Vector3((i - 1) * 0.28f, -0.08f, 0f);
+        }
+        fragments.SetActive(false);
+        platform.AddComponent<CrumblingPlatform>().Configure(this);
     }
 
     private void CreateEnemy(string name, Transform parent, bool jumping, Vector2 position)
     {
         Color color = jumping ? new Color(0.86f, 0.38f, 0.18f) : new Color(0.22f, 0.16f, 0.20f);
-        GameObject enemy = WorldSprite(name, parent, ClaySpriteFactory.Rounded(color, 80, 62, 0.48f, name.GetHashCode()), position, jumping ? new Vector2(1.15f, 0.95f) : new Vector2(1.05f, 0.82f), 4);
+        GameObject enemy = Child(name, parent); enemy.transform.position = position;
+        if (name.Contains("CrumbleCombo")) enemy.AddComponent<TrapSequenceController>().Configure("SEQ_ENEMY_CRUMBLE", "敌人 + 易碎平台");
         enemy.layer = GameplayLayer("Enemy");
         EnemyBase controller = jumping ? (EnemyBase)enemy.AddComponent<JumpBlobEnemy>() : enemy.AddComponent<MemoryCreeperEnemy>();
+        GameObject visualRoot = Child("VisualRoot", enemy.transform);
+        Animator animator = visualRoot.AddComponent<Animator>();
+        animator.runtimeAnimatorController = jumping ? YueTuanZaiAnimator : MoTuanZaiAnimator;
+        Sprite fallback = ClaySpriteFactory.Rounded(color, 80, 62, 0.48f, name.GetHashCode());
+        Sprite idle = jumping ? R_ENEMY_007_JumpBlob_Idle : R_ENEMY_001_Creeper_Idle;
+        if (idle == null) idle = fallback;
+        GameObject body = WorldSprite("Body", visualRoot.transform, idle, position, jumping ? new Vector2(1.15f, 0.95f) : new Vector2(1.05f, 0.82f), 4);
+        body.transform.localPosition = Vector3.zero;
+        Sprite eyeSprite = ClaySpriteFactory.Circle(new Color(1f, 0.80f, 0.35f), 32, jumping ? 502 : 501);
+        GameObject accent = WorldSprite("MemoryEye", visualRoot.transform, eyeSprite, position, Vector2.one * 0.13f, 5);
+        accent.transform.localPosition = new Vector3(0.16f, 0.08f, 0f);
         GameObject hurt = Child("Hurtbox", enemy.transform);
         hurt.layer = GameplayLayer("Enemy");
         BoxCollider2D hurtCollider = hurt.AddComponent<BoxCollider2D>(); hurtCollider.isTrigger = true; hurtCollider.size = new Vector2(0.96f, 0.78f);
@@ -1046,24 +1124,86 @@ public sealed class RedMemoryIntroController : MonoBehaviour
         BoxCollider2D attackCollider = attack.AddComponent<BoxCollider2D>(); attackCollider.isTrigger = true; attackCollider.size = new Vector2(0.92f, 0.58f); attackCollider.offset = new Vector2(0f, -0.1f);
         attack.AddComponent<EnemyAttackBox>();
         controller.Configure(this, Player, jumping ? 2 : 1);
+        EnemyVisualBinder binder = enemy.AddComponent<EnemyVisualBinder>();
+        binder.Configure(body.GetComponent<SpriteRenderer>(), accent.GetComponent<SpriteRenderer>(), idle,
+            jumping ? R_ENEMY_008_JumpBlob_Patrol_A : R_ENEMY_002_Creeper_Patrol_A,
+            jumping ? R_ENEMY_009_JumpBlob_Patrol_B : R_ENEMY_003_Creeper_Patrol_B,
+            jumping ? R_ENEMY_010_JumpBlob_Alert : R_ENEMY_006_Creeper_Attack,
+            jumping ? R_ENEMY_012_JumpBlob_Attack : R_ENEMY_006_Creeper_Attack,
+            jumping ? R_ENEMY_011_JumpBlob_Hurt : R_ENEMY_004_Creeper_Hurt,
+            jumping ? R_ENEMY_011_JumpBlob_Hurt : R_ENEMY_005_Creeper_Defeated);
+        enemy.AddComponent<EnemyAnimationDriver>().Configure(controller, binder, visualRoot.transform);
     }
 
     private void CreateCheckpoint(string name, Transform parent, Vector2 position)
     {
-        GameObject checkpoint = WorldSprite(name, parent, ClaySpriteFactory.Rounded(new Color(0.78f, 0.16f, 0.10f), 40, 100, 0.16f, name.GetHashCode()), position, new Vector2(0.55f, 1.6f), 3);
+        GameObject checkpoint = Child(name, parent); checkpoint.transform.position = position;
+        Sprite signSprite = R_SAVE_001_IdleSign != null ? R_SAVE_001_IdleSign : ClaySpriteFactory.Rounded(new Color(0.43f, 0.20f, 0.12f), 52, 110, 0.16f, name.GetHashCode());
+        Sprite lampSprite = R_SAVE_002_ActiveLamp != null ? R_SAVE_002_ActiveLamp : ClaySpriteFactory.Circle(new Color(0.72f, 0.27f, 0.10f), 52, 521);
+        Sprite glowSprite = R_SAVE_003_Glow != null ? R_SAVE_003_Glow : ClaySpriteFactory.Circle(new Color(1f, 0.52f, 0.12f, 0.35f), 72, 522);
+        Sprite ringSprite = R_SAVE_004_ActivationRing != null ? R_SAVE_004_ActivationRing : ClaySpriteFactory.Circle(new Color(1f, 0.72f, 0.28f, 0.7f), 72, 523);
+        GameObject sign = WorldSprite("MemorySignpost", checkpoint.transform, signSprite, position, new Vector2(0.7f, 1.65f), 3); sign.transform.localPosition = Vector3.zero;
+        GameObject lamp = WorldSprite("WarmLamp", checkpoint.transform, lampSprite, position, Vector2.one * 0.46f, 5); lamp.transform.localPosition = new Vector3(0.25f, 0.55f, 0f);
+        GameObject glow = WorldSprite("LampGlow", checkpoint.transform, glowSprite, position, Vector2.one * 0.92f, 4); glow.transform.localPosition = new Vector3(0.25f, 0.55f, 0f);
+        GameObject ring = WorldSprite("ActivationRing", checkpoint.transform, ringSprite, position, Vector2.one * 0.7f, 6); ring.transform.localPosition = new Vector3(0.25f, 0.25f, 0f);
         BoxCollider2D trigger = checkpoint.AddComponent<BoxCollider2D>(); trigger.isTrigger = true; trigger.size = new Vector2(2f, 2.5f);
-        checkpoint.AddComponent<RedMemoryCheckpoint>().Configure(this, position + Vector2.up * 0.2f);
+        CheckpointVisualController visual = checkpoint.AddComponent<CheckpointVisualController>();
+        visual.Configure(sign.GetComponent<SpriteRenderer>(), lamp.GetComponent<SpriteRenderer>(), glow.GetComponent<SpriteRenderer>(), ring.GetComponent<SpriteRenderer>(), R_SAVE_001_IdleSign, R_SAVE_002_ActiveLamp, R_SAVE_003_Glow, R_SAVE_004_ActivationRing);
+        checkpoint.AddComponent<CheckpointRespawnPoint>().Configure(this, position + Vector2.up * 0.2f, visual);
     }
 
     private void CreateFallingRock(string name, Transform parent, Vector2 position)
     {
         GameObject triggerObject = Child(name, parent); triggerObject.transform.position = position;
+        if (name.Contains("Area02")) triggerObject.AddComponent<TrapSequenceController>().Configure("SEQ_JUMP_ROCK", "跳跃 + 落石预警");
         triggerObject.layer = GameplayLayer("Trigger");
         BoxCollider2D trigger = triggerObject.AddComponent<BoxCollider2D>(); trigger.isTrigger = true; trigger.size = new Vector2(5f, 3f);
         GameObject shadowObject = WorldSprite("WarningShadow", triggerObject.transform, ClaySpriteFactory.Rounded(new Color(0.25f, 0.10f, 0.05f, 0.42f), 64, 24, 0.5f, 301), new Vector3(0f, -1.15f, 0f), new Vector2(1.3f, 0.35f), 3);
-        GameObject rock = WorldSprite("FallingRock", triggerObject.transform, ClaySpriteFactory.Rounded(new Color(0.29f, 0.27f, 0.24f), 72, 72, 0.48f, 302), new Vector3(0f, 5.5f, 0f), new Vector2(1.25f, 1.25f), 5);
+        shadowObject.transform.localPosition = new Vector3(0f, -1.15f, 0f);
+        Sprite rockSprite = R_TRAP_001_FallingRock != null ? R_TRAP_001_FallingRock : ClaySpriteFactory.Rounded(new Color(0.29f, 0.27f, 0.24f), 72, 72, 0.48f, 302);
+        GameObject rock = WorldSprite("FallingRock", triggerObject.transform, rockSprite, new Vector3(0f, 5.5f, 0f), new Vector2(1.25f, 1.25f), 5);
+        rock.transform.localPosition = new Vector3(0f, 5.5f, 0f);
         rock.layer = GameplayLayer("Hazard");
+        GameObject pebbles = Child("PebbleWarning", triggerObject.transform);
+        for (int i = 0; i < 3; i++) { GameObject pebble = WorldSprite("Pebble_" + i, pebbles.transform, rockSprite, position, Vector2.one * (0.12f + i * 0.03f), 4); pebble.transform.localPosition = new Vector3((i - 1) * 0.22f, 1.8f + i * 0.3f, 0f); }
+        GameObject dust = WorldSprite("ImpactDust", triggerObject.transform, ClaySpriteFactory.Circle(new Color(0.64f, 0.48f, 0.33f, 0.55f), 64, 525), position, new Vector2(1.2f, 0.45f), 4); dust.transform.localPosition = new Vector3(0f, -1.1f, 0f);
         triggerObject.AddComponent<FallingRockTrap>().Configure(this, Player, rock.transform, shadowObject.GetComponent<SpriteRenderer>());
+    }
+
+    private void CreateSpikeStrip(string name, Transform parent, Vector2 position, int count)
+    {
+        GameObject root = Child(name, parent); root.transform.position = position; root.layer = GameplayLayer("Hazard");
+        Sprite spikeSprite = R_TRAP_003_Spike != null ? R_TRAP_003_Spike : ClaySpriteFactory.Rounded(new Color(0.48f, 0.18f, 0.13f), 36, 64, 0.18f, 531);
+        for (int i = 0; i < count; i++)
+        {
+            GameObject spike = WorldSprite("Spike_" + i, root.transform, spikeSprite, position, new Vector2(0.42f, 0.62f), 3);
+            spike.transform.localPosition = new Vector3((i - (count - 1) * 0.5f) * 0.48f, 0f, 0f);
+            spike.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        }
+        BoxCollider2D collider = root.AddComponent<BoxCollider2D>(); collider.isTrigger = true; collider.size = new Vector2(count * 0.48f, 0.48f); collider.offset = new Vector2(0f, -0.05f);
+        root.AddComponent<EnvironmentalSpikeTrap>().Configure(this);
+    }
+
+    private void CreateSwingingObstacle(string name, Transform parent, Vector2 pivotPosition)
+    {
+        GameObject pivot = Child(name, parent); pivot.transform.position = pivotPosition;
+        pivot.AddComponent<TrapSequenceController>().Configure("SEQ_PLATFORM_SWING", "移动平台 + 摆动物");
+        GameObject rope = WorldSprite("Rope", pivot.transform, ClaySpriteFactory.Rounded(new Color(0.35f, 0.20f, 0.12f), 24, 96, 0.12f, 532), pivotPosition, new Vector2(0.13f, 2.5f), 2);
+        rope.transform.localPosition = new Vector3(0f, -1.25f, 0f);
+        Sprite obstacleSprite = R_TRAP_004_SwingingObstacle != null ? R_TRAP_004_SwingingObstacle : ClaySpriteFactory.Rounded(new Color(0.50f, 0.16f, 0.10f), 76, 76, 0.34f, 533);
+        GameObject weight = WorldSprite("SwingWeight", pivot.transform, obstacleSprite, pivotPosition, new Vector2(0.85f, 0.85f), 5);
+        weight.transform.localPosition = new Vector3(0f, -2.45f, 0f); weight.layer = GameplayLayer("Hazard");
+        CircleCollider2D collider = weight.AddComponent<CircleCollider2D>(); collider.isTrigger = true; collider.radius = 0.48f;
+        weight.AddComponent<SwingingHazard>().Configure(this, pivot.transform, 38f, 0.42f, 0.2f);
+    }
+
+    private void CreateMemoryFractureFloor(string name, Transform parent, Vector2 position, Vector2 size)
+    {
+        Sprite sprite = R_TRAP_005_MemoryFracture != null ? R_TRAP_005_MemoryFracture : ClaySpriteFactory.Rounded(new Color(0.45f, 0.16f, 0.20f), 140, 42, 0.18f, 534);
+        GameObject floor = WorldSprite(name, parent, sprite, position, size, 1);
+        floor.layer = GameplayLayer("Ground");
+        floor.AddComponent<BoxCollider2D>().size = Vector2.one;
+        floor.AddComponent<MemoryFractureFloor>().Configure(this);
     }
 
     private void CreateRollingBoulder(string name, Transform parent, Vector2 position)

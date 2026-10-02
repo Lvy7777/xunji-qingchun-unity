@@ -83,7 +83,9 @@ public sealed class RedMemoryHazard : MonoBehaviour
 public sealed class RedMemoryGoal : MonoBehaviour
 {
     private RedMemoryIntroController chapter;
-    public void Configure(RedMemoryIntroController owner) => chapter = owner;
+    private GoalMemoryGatherController gather;
+    public void Configure(RedMemoryIntroController owner, GoalMemoryGatherController gatherController) { chapter = owner; gather = gatherController; }
+    public GoalMemoryGatherController GatherController => gather;
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.GetComponentInParent<RedMemoryPlayerController>() != null) chapter.TryReachGoal();
@@ -130,6 +132,8 @@ public sealed class RedMemoryCameraFollow : MonoBehaviour
     private Vector3 velocity;
     private Camera followCamera;
     private float defaultSize;
+    private Transform focusTarget;
+    private float focusUntil;
     public void Configure(Transform followTarget)
     {
         target = followTarget;
@@ -138,10 +142,14 @@ public sealed class RedMemoryCameraFollow : MonoBehaviour
         defaultSize = followCamera != null ? followCamera.orthographicSize : 5.2f;
     }
     public void Snap() { if (target != null) transform.position = DesiredPosition(); }
+    public void FocusOn(Transform focus, float duration) { focusTarget = focus; focusUntil = Time.unscaledTime + duration; }
     private void LateUpdate()
     {
         if (target == null) return;
-        Vector3 desired = DesiredPosition();
+        if (focusTarget != null && Time.unscaledTime >= focusUntil) focusTarget = null;
+        Vector3 desired = focusTarget != null
+            ? new Vector3(Mathf.Clamp(focusTarget.position.x, 9f, 139f), Mathf.Clamp(focusTarget.position.y + 1.2f, 1.25f, 3.4f), -10f)
+            : DesiredPosition();
         transform.position = Vector3.SmoothDamp(transform.position, desired, ref velocity, 0.24f);
         if (followCamera != null)
         {
